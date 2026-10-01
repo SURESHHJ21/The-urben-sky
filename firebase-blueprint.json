@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Google authenticated user profile data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "role": { "type": "string", "enum": ["customer", "admin"], "maxLength": 32 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email"]
+    },
+    "Reservation": {
+      "title": "Reservation",
+      "description": "Table reservation booked at THE URBAN SKY",
+      "type": "object",
+      "properties": {
+        "booking_id": { "type": "string", "maxLength": 64 },
+        "customer_name": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "email": { "type": "string", "maxLength": 256 },
+        "booking_date": { "type": "string", "maxLength": 32 },
+        "booking_time": { "type": "string", "maxLength": 32 },
+        "guests": { "type": "number" },
+        "seating_preference": { "type": "string", "maxLength": 64 },
+        "occasion": { "type": "string", "maxLength": 64 },
+        "special_request": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "maxLength": 32 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["booking_id", "customer_name", "phone", "booking_date", "booking_time", "guests"]
+    },
+    "AiImage": {
+      "title": "AiImage",
+      "description": "Image created or edited via Gemini AI",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "prompt": { "type": "string", "maxLength": 1000 },
+        "aspectRatio": { "type": "string", "maxLength": 16 },
+        "mode": { "type": "string", "enum": ["generate", "edit"], "maxLength": 16 },
+        "imageUrl": { "type": "string", "maxLength": 500000 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "prompt", "imageUrl", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Multi-turn Gemini chat session record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "role": { "type": "string", "enum": ["user", "model", "system"], "maxLength": 16 },
+        "content": { "type": "string", "maxLength": 10000 },
+        "modelUsed": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "role", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Profile information for authenticated users"
+    },
+    "/users/{userId}/reservations/{reservationId}": {
+      "schema": "Reservation",
+      "description": "Private collection of reservations booked by user"
+    },
+    "/users/{userId}/images/{imageId}": {
+      "schema": "AiImage",
+      "description": "Private collection of user AI generated or edited images"
+    },
+    "/users/{userId}/chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "User saved chat messages with Gemini concierge"
+    },
+    "/reservations/{reservationId}": {
+      "schema": "Reservation",
+      "description": "Public verified table reservations"
+    }
+  }
+}

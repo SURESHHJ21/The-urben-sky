@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global safety net - Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() <= 128 &&
+        data.email is string && data.email.size() <= 256 &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512)) &&
+        (!('role' in data) || (data.role is string && data.role.size() <= 32));
+    }
+
+    // Validation for Reservation
+    function isValidReservation(data) {
+      return data.keys().hasAll(['booking_id', 'customer_name', 'phone', 'booking_date', 'booking_time', 'guests']) &&
+        data.booking_id is string && data.booking_id.size() <= 64 &&
+        data.customer_name is string && data.customer_name.size() > 0 && data.customer_name.size() <= 128 &&
+        data.phone is string && data.phone.size() > 0 && data.phone.size() <= 32 &&
+        data.booking_date is string && data.booking_date.size() <= 32 &&
+        data.booking_time is string && data.booking_time.size() <= 32 &&
+        data.guests is number && data.guests >= 1 && data.guests <= 50;
+    }
+
+    // Validation for AiImage
+    function isValidAiImage(data) {
+      return data.keys().hasAll(['id', 'prompt', 'imageUrl', 'createdAt']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.prompt is string && data.prompt.size() <= 1000 &&
+        data.imageUrl is string && data.imageUrl.size() <= 500000 &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // Validation for ChatMessage
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['id', 'role', 'content', 'timestamp']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.role is string && (data.role == 'user' || data.role == 'model' || data.role == 'system') &&
+        data.content is string && data.content.size() <= 10000 &&
+        data.timestamp is string && data.timestamp.size() <= 64;
+    }
+
+    // User Profile Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().uid == request.auth.uid;
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().uid == request.auth.uid;
+      allow delete: if isOwner(userId);
+
+      // Sub-collection: User reservations
+      match /reservations/{reservationId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidReservation(incoming());
+        allow update: if isOwner(userId) && isValidReservation(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      // Sub-collection: User generated or edited images
+      match /images/{imageId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidAiImage(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      // Sub-collection: User chat messages
+      match /chats/{chatId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidChatMessage(incoming());
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Public / Shared Table Reservations
+    match /reservations/{reservationId} {
+      allow read: if true;
+      allow create: if isValidReservation(incoming());
+      allow update: if isSignedIn() && isValidReservation(incoming());
+      allow delete: if false;
+    }
+  }
+}

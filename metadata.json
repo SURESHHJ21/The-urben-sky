@@ -1,0 +1,8 @@
+{
+  "name": "The Urban Sky - Restaurant & Resto-Bar",
+  "description": "Discover THE URBAN SKY in Davanagere — an elevated dining destination for memorable food, atmosphere and evenings. Explore the menu and reserve your table online.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
